@@ -1,0 +1,10 @@
+Place your 00_tradenodes.txt, default.map, definitons.csv, highmap.bmp, and provinces.bmp into Input, then fidget with config.cfg to get the settings you want, finaly execute RunMe.pyc.
+
+The program will go through each trade node generate a color mat covering the land provinces in them. (This generation is what takes the most time.)
+Said mats are then stitch those together into accessible trade area.  
+This is done form starting node(s) and radiate out until they reach the end node(s).
+
+if province changes are made to a node then that node will be redrawn.
+
+The program does not regenerate _Trade_Network and _Trade_Node maps from the Collectible Network/Individual Node folders.  
+If you want to do that then you will need to remove the _Trade_Network maps you want redone from the Collectible Network folder.

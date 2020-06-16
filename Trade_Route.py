@@ -439,7 +439,7 @@ def drawNodes(nodeList, nodeName, single):
                                     if len(node.defaultColor) >=3:
                                         drawOveride[x,y] = (node.defaultColor[0],node.defaultColor[1],node.defaultColor[2],255)
                                     else:
-                                        drawOveride[x,y] = (red,green,blue,255)
+                                        drawOveride[x,y] = (int(red),int(green),int(blue),255)
                                     lastY = y
                                 #print(lastY)
                             #lets assume that individual provinces are farly verticaly contiguous this will help speed up map generation based on proximity to top of map

@@ -62,6 +62,7 @@ class ProvinceDefinition:
     other_info = ""
 
 doDrawLines = [True]
+doRemoveWater = [True]
 doShowMaps = [True]
 specificNodes = []
 specificNodeNetwork = [True]
@@ -85,6 +86,12 @@ def getConfig():
                 doDrawLines.append(True)
             else:
                 doDrawLines.append(False)
+        if "doRemoveWater" in line:
+            doRemoveWater.clear()
+            if "T" in line.split("=")[1].upper():
+                doRemoveWater.append(True)
+            else:
+                doRemoveWater.append(False)
         if "doShowMaps" in line:
             doShowMaps.clear()
             if "T" in line.split("=")[1].upper():
@@ -419,10 +426,11 @@ def drawNodes(nodeList, nodeName, single):
                     print("\n%s - %g,%g,%g - %g/%g"%(node.name,red,green,blue,j,jtotal))
                 tmpProvinces = copy.deepcopy(node.provinces)
                 
-                for province in tmpWater:
-                    while province in tmpProvinces:
-                        print("Water Removed: %g"%province)
-                        tmpProvinces.remove(province)
+                if doRemoveWater[0]:
+                    for province in tmpWater:
+                        while province in tmpProvinces:
+                            print("Water Removed: %g"%province)
+                            tmpProvinces.remove(province)
 
                 drawingMap = Image.open("Input/clear.png")
                 drawOveride = drawingMap.load()
@@ -649,6 +657,7 @@ indintation = 0
 
 nodeList = []
 currentNode = ""
+outgoingSection = False
 MemberSection = False
 colorSection = False
 for line in tradeRoutes:
@@ -659,14 +668,21 @@ for line in tradeRoutes:
             else:
                 tmpLine = line.strip().split()
                 for element in tmpLine:
-                    if "={" in element:
+                    #if "={" in element:
                         #print(line.strip().rstrip("={"))
-                        tmpTradenode = TradeNode(element.strip().rstrip("={"))
-                        tmpTradenode.name = element.strip().rstrip("={")
-                        currentNode = element.strip().rstrip("={")
+                        #tmpTradenode = TradeNode(element.strip().rstrip("={"))
+                        #tmpTradenode.name = element.strip().rstrip("={")
+                        #currentNode = element.strip().rstrip("={")
+                        #nodeList.append(tmpTradenode)
+                    if "=" in element:
+                        tmpTradenode = TradeNode(element.split("=")[0].strip())
+                        tmpTradenode.name = element.split("=")[0].strip()
+                        currentNode = element.split("=")[0].strip()
                         nodeList.append(tmpTradenode)
+                        #print(currentNode)
     if indintation == 1:
-        if "location=" in line:
+        #if "location=" in line:
+        if line.strip().startswith("location"):
             for element in line.strip().split("="):
                 try:
                     if "#" in element:
@@ -674,22 +690,33 @@ for line in tradeRoutes:
                     tmpTradenode.centerProv = int(element)
                 except:
                     pass
-        if "outgoing={" in line:
-            if "#" in line and line.find("#")<line.find("outgoing={"):
+        #if "outgoing={" in line:
+        if line.strip().startswith("outgoing"):
+            if "#" in line and line.find("#")<line.find("outgoing"):
                 pass
             else:
-                tmpTradenode.addOut(next(tradeRoutes).strip().split("\"")[1])
+                outgoingSection = True
+                #tmpTradenode.addOut(next(tradeRoutes).strip().split("\"")[1])
                 #print(TradeNode(currentNode).outNodes)
-        if "members={" in line or "members =" in line:
-            if "#" in line and line.find("#")<line.find("members={"):
+        #if "members={" in line or "members =" in line:
+        if line.strip().startswith("members"):
+            if "#" in line and line.find("#")<line.find("members"):
                 pass
             else:
                 MemberSection = True
-        if "color={" in line:
-            if "#" in line and line.find("#")<line.find("members={"):
+        #if "color={" in line:
+        if line.strip().startswith("color"):
+            if "#" in line and line.find("#")<line.find("color"):
                 pass
             else:
                 colorSection = True
+    if outgoingSection:
+        if "#" in line and line.find("#")<line.find("name"):
+                pass
+        else:
+            if line.strip().startswith("name"):
+                tmpTradenode.addOut(line.split("=")[1].strip().strip("\""))
+                #print(line.split("=")[1].strip().strip("\""))
     if MemberSection:
         #print(line.strip().split())
         for element in line.strip().split():
@@ -720,6 +747,7 @@ for line in tradeRoutes:
             pass
         else:
             indintation -=1
+            outgoingSection = False
             MemberSection = False
             colorSection = False
 
@@ -745,7 +773,7 @@ if False:
 i=0
 
 properOrder = open("Output/Nodes/Node Info.csv", "w", encoding='utf-8-sig')
-properOrder.write("Node Name;Total Accessible Nodes;Number of Inputs;Number of Outputs;Total Connections\n\n")
+properOrder.write("Node Name;Total Accessible Nodes;Number of Inputs;Number of Outputs;Total Connections;Number of Provinces\n\n")
 if True:
     for x in range(0,len(nodeList)+1):
         numNodes = 0
@@ -759,7 +787,7 @@ if True:
                         drawTradeNetwork(nodeList,node.name, doShowMaps[0])
                     if doDrawIndividualNodes[0]:
                         drawSingleNode(nodeList,node.name, doShowSingleNode[0])
-                properOrder.write("%s;%i;%i;%i;%i\n"%(node.name,x,len(node.immediatelyUpstream),len(node.outNodes),(len(node.immediatelyUpstream)+len(node.outNodes))))
+                properOrder.write("%s;%i;%i;%i;%i;%i\n"%(node.name,x,len(node.immediatelyUpstream),len(node.outNodes),(len(node.immediatelyUpstream)+len(node.outNodes)),len(node.provinces)))
                 numNodes +=1
         if numNodes>0:
             print("\t%g - %g"%(numNodes,x))

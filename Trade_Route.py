@@ -263,9 +263,11 @@ def getCenterOfWeight(nodeName, nodeList):
     for i in range(0,len(allXY)):
         sumX +=allXY[i][0]
         sumY +=allXY[i][1]
-
-    sumX = int(sumX/len(allXY))
-    sumY = int(sumY/len(allXY))
+    try:
+        sumX = int(sumX/len(allXY))
+        sumY = int(sumY/len(allXY))
+    except:
+        pass
     print("%s: %g, %g"%(nodeName, sumX,sumY))
 
     notFound=0
@@ -766,10 +768,19 @@ for node in nodeList:
     #print(node.upStream)
 
 #print list of nodes upstream of input node for image updating purposes
-if False:
+if specificNodes:
+    updateList = open("Output/Nodes/update Image List.txt", "w", encoding='utf-8-sig')
+    tmpUpdateList = []
     for node in nodeList:
-        if "brazil" in node.upStream:
-            print(node.name)
+        for name in specificNodes:
+            if name in node.upStream:
+                if node.name in tmpUpdateList:
+                    pass
+                else:
+                    print(node.name)
+                    tmpUpdateList.append(node.name)
+                    updateList.write("%s\n"%node.name)
+    updateList.close()
 i=0
 
 properOrder = open("Output/Nodes/Node Info.csv", "w", encoding='utf-8-sig')

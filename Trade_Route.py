@@ -416,7 +416,10 @@ def drawNodes(nodeList, nodeName, single):
             #print("Image %s found"%node.name)
             if node.name in shortNodeList:
                 j+=1
-                remainingNodesList.remove(node.name)
+                try:
+                    remainingNodesList.remove(node.name)
+                except:
+                    pass
         else:
             if node.name in shortNodeList:
                 j+=1
@@ -677,9 +680,9 @@ for line in tradeRoutes:
                         #currentNode = element.strip().rstrip("={")
                         #nodeList.append(tmpTradenode)
                     if "=" in element:
-                        tmpTradenode = TradeNode(element.split("=")[0].strip())
-                        tmpTradenode.name = element.split("=")[0].strip()
-                        currentNode = element.split("=")[0].strip()
+                        tmpTradenode = TradeNode(line.strip().split("=")[0].strip())
+                        tmpTradenode.name = line.strip().split("=")[0].strip()
+                        currentNode = line.strip().split("=")[0].strip()
                         nodeList.append(tmpTradenode)
                         #print(currentNode)
     if indintation == 1:
@@ -739,19 +742,21 @@ for line in tradeRoutes:
                 tmpTradenode.setDefaultColor(int(element))
             except:
                 pass
-    if "{" in line:
-        if "#" in line and line.find("#")<line.find("{"):
-            pass
-        else:
-            indintation +=1
-    if "}" in line:
-        if "#" in line and line.find("#")<line.find("}"):
-            pass
-        else:
-            indintation -=1
-            outgoingSection = False
-            MemberSection = False
-            colorSection = False
+    if "{" in line or "}" in line:
+        #print("l: "+line)
+        for element in list(line.strip()):
+            if "{" in element:
+                indintation +=1
+                #print("s: "+element)
+            elif "}" in element:
+                indintation -=1
+                outgoingSection = False
+                MemberSection = False
+                colorSection = False
+                #print("e: "+element)
+            elif "#" in element:
+                #print("c: "+element)
+                break
 
 j=0
 
@@ -777,7 +782,7 @@ if specificNodes:
                 if node.name in tmpUpdateList:
                     pass
                 else:
-                    print(node.name)
+                    #print(node.name)
                     tmpUpdateList.append(node.name)
                     updateList.write("%s\n"%node.name)
     updateList.close()

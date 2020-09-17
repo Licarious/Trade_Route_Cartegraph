@@ -441,24 +441,33 @@ def drawNodes(nodeList, nodeName, single):
                 drawOveride = drawingMap.load()
                 i=0
                 #print(deffList)
-                for province in deffList:
-                    lastY = -1
-                    if province.id in tmpProvinces:
-                        i+=1
-                        print("%s - %g - %g/%g"%(province.name,province.id,i,len(tmpProvinces)))
-                        for y in yRange:
-                            for x in xRange:
-                                if pixOveride[x,y] == (province.red, province.green, province.blue):
-                                    if len(node.defaultColor) >=3:
-                                        drawOveride[x,y] = (node.defaultColor[0],node.defaultColor[1],node.defaultColor[2],255)
-                                    else:
-                                        drawOveride[x,y] = (int(red),int(green),int(blue),255)
-                                    lastY = y
-                                #print(lastY)
-                            #lets assume that individual provinces are farly verticaly contiguous this will help speed up map generation based on proximity to top of map
-                            if lastY >0and y > lastY + int(len(yRange)/vertAssumption[0]):
-                                #print(y)
-                                break
+
+                tupleList = []
+                for prov in deffList:
+                    if prov.id in tmpProvinces:
+                        tupleList.append((prov.red,prov.green,prov.blue))
+
+                #print(nodeName)
+                lastY = -1
+                counter = provinceMap.size[1]/10
+                for y in yRange:
+                    if y%232 == 0:
+                        print("%i%%"%((y*10)/counter))
+                    if y == provinceMap.size[1]-1:
+                        print("100%")
+                    for x in xRange:
+                        if pixOveride[x,y] in tupleList:
+                            lastY = y
+                            if len(node.defaultColor) >=3:
+                                drawOveride[x,y] = (node.defaultColor[0],node.defaultColor[1],node.defaultColor[2],255)
+                            else:
+                                drawOveride[x,y] = (int(red),int(green),int(blue),255)
+                    if lastY >-1 and y > lastY + provinceMap.size[1]/vertAssumption[0]:
+                        print("%i%% Likely Finished Node"%((y*100)/provinceMap.size[1]))
+                        break
+                    
+                                    
+                                
                 #drawingMap.show()
                 drawingMap.save("Output/Nodes/ProvinceMap/%s.png"%node.name)
                 provinceList = open("Output/Nodes/ProvinceList/%s.txt"%node.name, "w", encoding='utf-8-sig')

@@ -1,4 +1,4 @@
-Place your 00_tradenodes.txt, default.map, definitons.csv, highmap.bmp, and provinces.bmp into Input, then fidget with config.cfg to get the settings you want, finaly execute RunMe.pyc.
+Place your 00_tradenodes.txt, default.map, definitons.csv, highmap.bmp, and provinces.bmp into Input, then fidget with config.cfg to get the settings you want, finaly execute Trade_route.py.
 
 The program will go through each trade node generate a color mat covering the land provinces in them. (This generation is what takes the most time.)
 Said mats are then stitch those together into accessible trade area.  

@@ -5,13 +5,9 @@ import math
 import py_compile
 import os
 import re
+from collections import defaultdict
 
-try:
-    py_compile.compile("Trade_Route.py")
-    os.remove("RunMe.pyc")
-    os.rename("__pycache__/Trade_Route.cpython-37.pyc","RunMe.pyc")
-except:
-    print("Compiler Error! Will attempt to continue.")
+
 try:
     if not os.path.exists('Output/Nodes/Collectible Network'):
         os.makedirs('Output/Nodes/Collectible Network')
@@ -70,6 +66,12 @@ doShowSingleNode = [False]
 doDrawIndividualNodes = [False]
 vertAssumption = [20]
 indexingValue = [60]
+
+edges = []
+
+tmpMapColor = []
+ColorLength = []
+deffList = []
 
 def getConfig():
     Config = open("config.cfg", "r", encoding='utf-8-sig')
@@ -144,6 +146,67 @@ def getConfig():
                 else:
                     specificNodes.append(node)
     pass
+
+
+def DFS(G,v,seen=None,path=None):
+    if seen is None: seen = []
+    if path is None: path = [v]
+   
+    seen.append(v)
+
+    paths = []
+
+    for t in G[v]:
+        if t not in seen:
+            try:
+                t_path=path+[t]
+                paths.append(tuple(t_path))
+                paths.extend(DFS(G,t,seen[:],t_path))
+            except:
+                print("\texception:%g\t%s"%(t))
+                break
+                
+    return paths
+
+
+def graphEdges(nodeList):
+    #Define graph by edges
+    #edges = [['1', '2'], ['2', '4'], ['1', '11'], ['4', '11']]
+
+    for node in nodeList:
+        for out in node.outNodes:
+            print("%s - %s"%(node.name, out))
+            edges.append(tuple((node.name, out)))
+        print()
+
+    #Build graph dictionary
+    G = defaultdict(list)
+    for (s,t) in edges:
+        G[s].append(t)
+        #G[t].append(s)
+
+    # Run DFS, compute metrics
+    #all_paths = [p for ps in [DFS(G, n) for n in set(G)] for p in ps]
+    all_paths = []
+    for node in set(G.keys()):
+        print(node)
+        for path in DFS(G, node):
+            if not all_paths:
+                all_paths.append(path)
+            if len(path) >= len(all_paths[0]):
+                if len(path) > len(all_paths[0]):
+                    all_paths.clear()
+                all_paths.append(path)
+    max_len   = max(len(p) for p in all_paths)
+    max_paths = [p for p in all_paths if len(p) == max_len]
+
+    # Output
+    #print("All Paths:")
+    #print(all_paths)
+    print("Longest Paths:")
+    for p in max_paths: print("  ", p)
+    print("Longest Path Length:")
+    print(max_len)
 
 def printTradeList(nodeList):
     for line in nodeList:
@@ -462,6 +525,7 @@ def drawNodes(nodeList, nodeName, single):
                                 drawOveride[x,y] = (node.defaultColor[0],node.defaultColor[1],node.defaultColor[2],255)
                             else:
                                 drawOveride[x,y] = (int(red),int(green),int(blue),255)
+                            #print(tupleList.index(pixOveride[x,y]))
                     if lastY >-1 and y > lastY + provinceMap.size[1]/vertAssumption[0]:
                         print("%i%% Likely Finished Node"%((y*100)/provinceMap.size[1]))
                         break
@@ -476,6 +540,158 @@ def drawNodes(nodeList, nodeName, single):
                 provinceList.close()
                 remainingNodesList.remove(node.name)
                 print("\n")
+    pass
+def drawNodes2(nodeList, nodeName, single):
+    red = 0
+    green = 0
+    blue = 0
+    offset = indexingValue[0] #for indexing through trade node colors
+    
+    if not tmpMapColor:
+        mapDefinition = open("Input/definition.csv")
+        provinceMap = Image.open("Input/provinces.bmp")
+        pixOveride = provinceMap.load()
+
+
+        for province in mapDefinition:
+            tmpline = province.strip().split(';')
+            try:
+                province = ProvinceDefinition()
+                province.red = int(tmpline[1])
+                province.id = int(tmpline[0].lstrip("#"))
+                province.green = int(tmpline[2])
+                province.blue = int(tmpline[3])
+                province.name = tmpline[4]
+                deffList.append(province)
+                #print(province.name)
+            except:
+                pass
+
+        for y in range(0,provinceMap.size[1]):
+            mapLine = []
+            ColorlengthLine = []
+            length = 1
+            color = pixOveride[0,y]
+            for x in range(1,provinceMap.size[0]):
+                if pixOveride[x,y] == color:
+                    length+=1
+                else:
+                    mapLine.append(color)
+                    ColorlengthLine.append(length)
+
+                    length=1
+                    color = pixOveride[x,y]
+
+            mapLine.append(color)
+            ColorlengthLine.append(length)
+
+            tmpMapColor.append(mapLine)
+            ColorLength.append(ColorlengthLine)
+                    
+    
+    #xRange= range(0,provinceMap.size[0],1)
+    #yRange= range(0,provinceMap.size[1],1)
+
+    tmpWater = getWater()
+    if single:
+        shortNodeList = [nodeName]
+        remainingNodesList = shortNodeList
+    else:
+        shortNodeList = accessableTradeArea(nodeName, nodeList)
+        remainingNodesList = accessableTradeArea(nodeName, nodeList)
+
+    j=0
+    jtotal = len(shortNodeList)
+    
+    colorAlt = True
+    for node in nodeList:
+        red +=offset
+        if colorAlt:
+            green +=int(offset/2)
+            colorAlt = False
+        else:
+            blue +=int(offset/2)
+            colorAlt = True
+        if red>=256:
+            green += offset
+            red -=256
+        if green>=256:
+            blue +=offset
+            green -=256
+        if blue>=256:
+            red +=int(offset/2)
+            blue -=256
+        tmpFile = pathlib.Path("Output/Nodes/ProvinceMap/%s.png"%node.name)
+        if node.name in shortNodeList:
+            nodeParityCheck(node)
+        if tmpFile.exists() and node.parityCheck:
+            #print("Image %s found"%node.name)
+            if node.name in shortNodeList:
+                j+=1
+                try:
+                    remainingNodesList.remove(node.name)
+                except:
+                    pass
+        else:
+            if node.name in shortNodeList:
+                j+=1
+                #print("%s"%remainingNodesList) 
+                print("%s"%shortNodeList)
+                if len(node.defaultColor) >=3:
+                    print("\n%s - %s - %g/%g"%(node.name,node.defaultColor,j,jtotal))
+                else:
+                    print("\n%s - %g,%g,%g - %g/%g"%(node.name,red,green,blue,j,jtotal))
+                tmpProvinces = copy.deepcopy(node.provinces)
+                
+                if doRemoveWater[0]:
+                    for province in tmpWater:
+                        while province in tmpProvinces:
+                            print("Water Removed: %g"%province)
+                            tmpProvinces.remove(province)
+
+                drawingMap = Image.open("Input/clear.png")
+                drawOveride = drawingMap.load()
+                i=0
+                #print(deffList)
+
+                tupleList = []
+                for prov in deffList:
+                    if prov.id in tmpProvinces:
+                        tupleList.append((prov.red,prov.green,prov.blue))
+
+                #print(nodeName)
+                lastY = -1
+                counter = len(ColorLength)/10
+                for y in range(0,len(tmpMapColor)):
+                    if y%232 == 0:
+                        print("%i%%"%((y*10)/counter))
+                    if y == len(ColorLength)-1:
+                        print("100%")
+                    tx=0
+                    for x in range(0,len(tmpMapColor[y])):
+                        if tmpMapColor[y][x] in tupleList:
+                            for i in range(0,ColorLength[y][x]):
+                                if len(node.defaultColor) >=3:
+                                    drawOveride[tx+i,y] = (node.defaultColor[0],node.defaultColor[1],node.defaultColor[2],255)
+                                else:
+                                    drawOveride[tx+i,y] = (int(red),int(green),int(blue),255)
+                            lastY = y
+                        tx+=ColorLength[y][x]
+                    if lastY >-1 and y > lastY + len(ColorLength)/vertAssumption[0]:
+                        print("%i%% Likely Finished Node"%((y*100)/len(ColorLength)))
+                        break
+                    
+                                    
+                                
+                #drawingMap.show()
+                drawingMap.save("Output/Nodes/ProvinceMap/%s.png"%node.name)
+                provinceList = open("Output/Nodes/ProvinceList/%s.txt"%node.name, "w", encoding='utf-8-sig')
+                for province in node.provinces:
+                    provinceList.write("%g\n"%province)
+                provinceList.close()
+                remainingNodesList.remove(node.name)
+                print("\n")
+    pass
 tradeRoutes = open("Input/00_tradenodes.txt",'r',encoding='utf-8',errors='ignore')
 
 def drawWestEast(drawingMap,drawNodeLines,x1,x2,y1,y2,yA):
@@ -598,7 +814,7 @@ def drawTradeNetwork(nodeList, nodeName, ShowMapAfter):
                 pass
             else:
                 #drawingMap.show()
-                drawNodes(nodeList, node.name, False)
+                drawNodes2(nodeList, node.name, False)
             tmpImage = Image.open("Output/Nodes/ProvinceMap/%s.png"%node.name)
             drawingMap.paste(tmpImage,(0,0),tmpImage)
             if node.centerX == 0:
@@ -626,7 +842,7 @@ def drawSingleNode(nodeList, nodeName, ShowMapAfter):
                 pass
             else:
                 #drawingMap.show()
-                drawNodes(nodeList, node.name, True)
+                drawNodes2(nodeList, node.name, True)
             tmpImage = Image.open("Output/Nodes/ProvinceMap/%s.png"%node.name)
             drawingMap.paste(tmpImage,(0,0),tmpImage)
     if ShowMapAfter:
@@ -650,7 +866,7 @@ def drawAllNodes(nodeList):
             pass
         else:
             drawingMap.show()
-            drawNodes(nodeList, node.name, False)
+            drawNodes2(nodeList, node.name, False)
         tmpImage = Image.open("Output/Nodes/ProvinceMap/%s.png"%node.name)
         drawingMap.paste(tmpImage,(0,0),tmpImage)
         if node.centerX == 0:
@@ -822,10 +1038,12 @@ if not specificNodes:
     drawAllNodes(nodeList)
 
 
-if False:
+if True:
     for node in nodeList:
         print(node.name)
         HierarchyFile = open("Output/Nodes/Hierarchy/%s.txt"%node.name, "w", encoding='utf-8-sig')
         writeNodeHierarchy(nodeList,node.name,HierarchyFile,0)
         HierarchyFile.close()
 
+
+graphEdges(nodeList)
